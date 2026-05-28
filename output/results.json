@@ -1,0 +1,106 @@
+[
+  {
+    "student_id": "100011",
+    "source_form": "2026-Gen Med Y4 – 1- Auckland- Student 001.pdf",
+    "scored": {
+      "student_id": "100011",
+      "CSR_Grade": "Pass",
+      "CSR_reasoning": "key_excellents=2, some_reservations=0, major_deficiencies=0 -> none of Distinction (>4 excellents), Borderline (1 reservation), or Fail conditions met; assigned Pass.",
+      "CAT_Grade": "Distinction",
+      "CAT_reasoning": "cat_score=20 >=19, meets Distinction threshold.",
+      "POGS_Grade": "Distinction",
+      "POGS_reasoning": "pogs_score=10 =10, meets Distinction threshold."
+    },
+    "final": {
+      "student_id": "100011",
+      "csr_ratings_per_domain": {
+        "clinical_knowledge": "Excellent",
+        "patient_assessment": "Good",
+        "clinical_decision": "Good",
+        "communication": "Excellent",
+        "engagement_team": "Unknown",
+        "professional_qualities": "Good"
+      },
+      "csr_counts": {
+        "key_excellents_count": 2,
+        "some_reservations_count": 0,
+        "major_deficiencies_count": 0
+      },
+      "cat_score": 20,
+      "pogs_score": 10,
+      "component_grades": {
+        "CSR_Grade": "Pass",
+        "CSR_reasoning": "key_excellents=2, some_reservations=0, major_deficiencies=0 -> none of Distinction (>4 excellents), Borderline (1 reservation), or Fail conditions met; assigned Pass.",
+        "CAT_Grade": "Distinction",
+        "CAT_reasoning": "cat_score=20 >=19, meets Distinction threshold.",
+        "POGS_Grade": "Distinction",
+        "POGS_reasoning": "pogs_score=10 =10, meets Distinction threshold."
+      },
+      "Final_Overall_Grade": "Distinction",
+      "Final_reasoning": "Step 2 matched: POGS=Distinction and CAT=Distinction (CSR=Pass, CAT=Distinction, POGS=Distinction)",
+      "fitness_to_practise": {
+        "concern": false,
+        "reason": ""
+      },
+      "escalation": false,
+      "escalation_reasons": [],
+      "review_required": false,
+      "content_safety": {
+        "flagged": false,
+        "categories": []
+      }
+    }
+  },
+  {
+    "student_id": "100012",
+    "source_form": "2026-Gen Med Y4 – 1- Auckland- Student 002.pdf",
+    "scored": {
+      "student_id": "100012",
+      "CSR_Grade": "Distinction",
+      "CSR_reasoning": "key_excellents=6, some_reservations=0, major_deficiencies=0. Step 1 matched: Distinction requires >4 excellents and zero reservations and deficiencies.",
+      "CAT_Grade": "Pass",
+      "CAT_reasoning": "cat_score=18 → falls in 14–18 range = Pass.",
+      "POGS_Grade": "Distinction",
+      "POGS_reasoning": "pogs_score=10 → equals 10 = Distinction."
+    },
+    "final": {
+      "student_id": "100012",
+      "csr_ratings_per_domain": {
+        "clinical_knowledge": "Excellent",
+        "patient_assessment": "Excellent",
+        "clinical_decision": "Excellent",
+        "communication": "Excellent",
+        "engagement_team": "Excellent",
+        "professional_qualities": "Excellent"
+      },
+      "csr_counts": {
+        "key_excellents_count": 6,
+        "some_reservations_count": 0,
+        "major_deficiencies_count": 0
+      },
+      "cat_score": 18,
+      "pogs_score": 10,
+      "component_grades": {
+        "CSR_Grade": "Distinction",
+        "CSR_reasoning": "key_excellents=6, some_reservations=0, major_deficiencies=0. Step 1 matched: Distinction requires >4 excellents and zero reservations and deficiencies.",
+        "CAT_Grade": "Pass",
+        "CAT_reasoning": "cat_score=18 → falls in 14–18 range = Pass.",
+        "POGS_Grade": "Distinction",
+        "POGS_reasoning": "pogs_score=10 → equals 10 = Distinction."
+      },
+      "Final_Overall_Grade": "Distinction",
+      "Final_reasoning": "Step 2 Distinction: CSR=Distinction, CAT=Pass, POGS=Distinction",
+      "fitness_to_practise": {
+        "concern": false,
+        "reason": ""
+      },
+      "escalation": false,
+      "escalation_reasons": [],
+      "review_required": false,
+      "content_safety": {
+        "flagged": false,
+        "categories": []
+      }
+    }
+  }
+]
