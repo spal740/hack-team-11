@@ -1,45 +1,64 @@
-"""Load POGS scores and the ground-truth overall grade from the Excel
-in blob storage.
-
-The Excel serves two purposes:
-  - POGS score: a pipeline input (POGS is not on the scanned form)
-  - Final Overall Grade: the Access-generated outcome, used to validate
-    the agent's generated overall grade.
-"""
+"""Load CSR counts, POGS score, and ground-truth grades from the Excel in blob."""
 
 import io
 import os
+import logging
 import pandas as pd
 from dotenv import load_dotenv
 from src.blob_reader import _get_blob_service
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 def _read_excel_bytes_from_blob() -> bytes:
-    """Download the first .xlsx file in the data container."""
     container = os.getenv("AZURE_CONTAINER_DATA", "data")
-    service = _get_blob_service()
-    blobs = list(service.get_container_client(container).list_blobs())
+    try:
+        service = _get_blob_service()
+        blobs = list(service.get_container_client(container).list_blobs())
+    except Exception as e:
+        logger.error("Failed to access blob container '%s': %s", container, e)
+        raise
+
     xlsx_blobs = [b for b in blobs if b.name.lower().endswith(".xlsx")]
     if not xlsx_blobs:
         raise RuntimeError(f"No .xlsx file in container '{container}'")
+
     blob_name = xlsx_blobs[0].name
-    return service.get_blob_client(
-        container=container, blob=blob_name
-    ).download_blob().readall()
+    logger.info("Reading Excel: %s", blob_name)
+    try:
+        return service.get_blob_client(
+            container=container, blob=blob_name
+        ).download_blob().readall()
+    except Exception as e:
+        logger.error("Failed to download '%s': %s", blob_name, e)
+        raise
 
 
 def read_students(limit: int | None = None) -> list[dict]:
-    """Return a list of student dicts: POGS input + ground-truth overall grade.
+    """Return student dicts: CSR counts + POGS + ground-truth grades.
 
     Each dict:
-      student_id   - join key to match against extracted forms
-      pogs_score   - pipeline input
-      _truth       - {Final_Overall_Grade} from Access (for validation)
+      student_id,
+      csr {key_excellents_count, some_reservations_count, major_deficiencies_count},
+      pogs_score,
+      _truth {CSR_Grade, Final_Overall_Grade}
     """
     excel_bytes = _read_excel_bytes_from_blob()
-    df = pd.read_excel(io.BytesIO(excel_bytes))
+    try:
+        df = pd.read_excel(io.BytesIO(excel_bytes))
+    except Exception as e:
+        logger.error("Failed to parse Excel: %s", e)
+        raise
+
+    required = [
+        "student id", "NoofExcellentsinkeyfields", "NoofSRsandMDs",
+        "NoofMajordefinkeyfields", "POGS_No",
+        "Final Grade for Ward", "Final Overall Grade for Run",
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise RuntimeError(f"Excel missing expected columns: {missing}")
 
     if limit:
         df = df.head(limit)
@@ -54,25 +73,38 @@ def read_students(limit: int | None = None) -> list[dict]:
         return str(val).strip() if pd.notna(val) else ""
 
     students = []
+    skipped = 0
     for _, row in df.iterrows():
-        student = {
-            "student_id": safe_str(row.get("student id", row.get("ID", ""))),
+        sid = safe_str(row.get("student id"))
+        if not sid:
+            skipped += 1
+            continue
+
+        srmd = safe_int(row.get("NoofSRsandMDs"))
+        major_def = safe_int(row.get("NoofMajordefinkeyfields"))
+        some_res = max(0, srmd - major_def)
+
+        students.append({
+            "student_id": sid,
+            "csr": {
+                "key_excellents_count": safe_int(row.get("NoofExcellentsinkeyfields")),
+                "some_reservations_count": some_res,
+                "major_deficiencies_count": major_def,
+            },
             "pogs_score": safe_int(row.get("POGS_No")),
             "_truth": {
-                "Final_Overall_Grade": safe_str(
-                    row.get("Final Overall Grade for Run")
-                ),
+                "CSR_Grade": safe_str(row.get("Final Grade for Ward")),
+                "Final_Overall_Grade": safe_str(row.get("Final Overall Grade for Run")),
             },
-        }
-        students.append(student)
+        })
 
+    logger.info("Loaded %d students (%d rows skipped, no ID)", len(students), skipped)
     return students
 
 
 if __name__ == "__main__":
+    from src.logging_config import setup_logging
+    setup_logging()
     import json
     students = read_students(limit=5)
-    print(f"Loaded {len(students)} students.\n")
-    for s in students:
-        print(json.dumps(s, indent=2))
-        print()
+    print(json.dumps(students, indent=2))

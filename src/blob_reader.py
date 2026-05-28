@@ -1,4 +1,4 @@
-"""Read forms, rubric, and data files from Azure Blob Storage.
+"""Read forms and data files from Azure Blob Storage.
 
 Uses Entra ID (DefaultAzureCredential) — requires `az login` on the right tenant.
 Required role on the storage account: Storage Blob Data Reader (or Contributor).
@@ -38,15 +38,10 @@ def list_forms() -> list[str]:
     return list_blobs(os.getenv("AZURE_CONTAINER_FORMS", "raw-forms"))
 
 
-def list_rubrics() -> list[str]:
-    return list_blobs(os.getenv("AZURE_CONTAINER_RUBRICS", "rubrics"))
-
-
 def list_data_files() -> list[str]:
     return list_blobs(os.getenv("AZURE_CONTAINER_DATA", "data"))
 
 
 if __name__ == "__main__":
     print("Forms:    ", list_forms())
-    print("Rubrics:  ", list_rubrics())
     print("Data:     ", list_data_files())
