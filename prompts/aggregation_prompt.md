@@ -83,7 +83,7 @@ For each triggered reason, add a short entry to escalation_reasons:
   - If fitness-triggered: "Fitness-to-practise concern: <student.fitness_concern_reason>"
     (If fitness_concern_reason is empty, write: "Fitness-to-practise concern: no reason provided")
 
-Set review_required = true if Final_Overall_Grade = "Borderline" (regardless of escalation status).
+
 
 If escalation = false, escalation_reasons must be [].
 
