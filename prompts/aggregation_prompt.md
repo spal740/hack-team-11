@@ -83,9 +83,20 @@ For each triggered reason, add a short entry to escalation_reasons:
   - If fitness-triggered: "Fitness-to-practise concern: <student.fitness_concern_reason>"
     (If fitness_concern_reason is empty, write: "Fitness-to-practise concern: no reason provided")
 
-
-
 If escalation = false, escalation_reasons must be [].
+
+---
+
+## REVIEW REQUIRED AND CONTENT SAFETY (placeholder values only)
+
+You do NOT determine these flags. They are set by a separate Content Safety step that runs after aggregation on the form's free-text comments.
+
+In your output ALWAYS set:
+  - review_required: false
+  - content_safety.flagged: false
+  - content_safety.categories: []
+
+The downstream Content Safety step will overwrite these in the final JSON if the free-text raises a concern.
 
 ---
 
@@ -137,6 +148,7 @@ Rules for output:
 - Final_Overall_Grade must be exactly one of: "Distinction", "Pass", "Borderline", "Fail"
 - Echo csr_ratings_per_domain, csr_counts, cat_score, pogs_score VERBATIM from the input — do not recompute or alter them
 - fitness_to_practise.concern and .reason are taken VERBATIM from student.fitness_concern and student.fitness_concern_reason
-- content_safety.flagged is always false and content_safety.categories is always [] in this output (Content Safety populates these in a separate later step)
+- review_required is ALWAYS false in this output (the Content Safety step overwrites it later if needed)
+- content_safety.flagged is ALWAYS false and content_safety.categories is ALWAYS [] in this output (the Content Safety step overwrites these later)
 - escalation_reasons must be [] if escalation = false
 - Never invent data. If a required input is missing, set Final_Overall_Grade to "Fail" and add "missing input: <field>" to escalation_reasons.

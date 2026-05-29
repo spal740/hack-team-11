@@ -94,3 +94,4 @@ Rules for output:
 - Never invent data. If a required input is missing, set the relevant grade to "Fail" and add "missing input: <field>" to a reasoning field.
 - Do NOT output a final overall grade. That's handled by the aggregation step.
 - Do NOT analyse free-text comments. That's handled by the aggregation/escalation step.
+- Use plain ASCII characters only in all reasoning fields. Do NOT use Unicode arrows (→, ←), em-dashes (—), or any non-ASCII characters.

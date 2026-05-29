@@ -1,5 +1,8 @@
 """Aggregate component grades into a final assessment using a Foundry Agent.
 
+Uses Structured Outputs (json_schema, strict) on the agent definition so the
+agent's response is constrained to AGGREGATION_SCHEMA at the API level.
+
 Split into:
   - setup_aggregator()  -> creates project client + agent ONCE. Call once.
   - aggregate_assessment(project, agent_name, scored, student) -> dict.
@@ -14,13 +17,127 @@ from pathlib import Path
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import PromptAgentDefinition
+from azure.ai.projects.models import (
+    PromptAgentDefinition,
+    PromptAgentDefinitionTextOptions,
+    TextResponseFormatJsonSchema,
+)
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 AGENT_NAME = "mbchb-aggregator"
 INSTRUCTIONS_PATH = Path(__file__).parent.parent / "prompts" / "aggregation_prompt.md"
+
+GRADE_ENUM = ["Distinction", "Pass", "Borderline", "Fail"]
+DOMAIN_RATING_ENUM = [
+    "Excellent", "Good", "Some Reservations",
+    "Major Deficiency", "Not Observed", "Unknown",
+]
+
+# JSON Schema constraining the aggregation agent's structured output.
+# Mirrors the OUTPUT section of prompts/aggregation_prompt.md. If a field is
+# added/renamed in the prompt, update here and the prompt together.
+AGGREGATION_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "student_id",
+        "csr_ratings_per_domain",
+        "csr_counts",
+        "cat_score",
+        "pogs_score",
+        "component_grades",
+        "Final_Overall_Grade",
+        "Final_reasoning",
+        "fitness_to_practise",
+        "escalation",
+        "escalation_reasons",
+        "review_required",
+        "content_safety",
+    ],
+    "properties": {
+        "student_id": {"type": "string"},
+        "csr_ratings_per_domain": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "clinical_knowledge", "patient_assessment", "clinical_decision",
+                "communication", "engagement_team", "professional_qualities",
+            ],
+            "properties": {
+                "clinical_knowledge": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+                "patient_assessment": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+                "clinical_decision": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+                "communication": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+                "engagement_team": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+                "professional_qualities": {"type": "string", "enum": DOMAIN_RATING_ENUM},
+            },
+        },
+        "csr_counts": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "key_excellents_count",
+                "some_reservations_count",
+                "major_deficiencies_count",
+            ],
+            "properties": {
+                "key_excellents_count": {"type": "integer"},
+                "some_reservations_count": {"type": "integer"},
+                "major_deficiencies_count": {"type": "integer"},
+            },
+        },
+        "cat_score": {"type": "integer"},
+        "pogs_score": {"type": "integer"},
+        "component_grades": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "CSR_Grade", "CSR_reasoning",
+                "CAT_Grade", "CAT_reasoning",
+                "POGS_Grade", "POGS_reasoning",
+            ],
+            "properties": {
+                "CSR_Grade": {"type": "string", "enum": GRADE_ENUM},
+                "CSR_reasoning": {"type": "string"},
+                "CAT_Grade": {"type": "string", "enum": GRADE_ENUM},
+                "CAT_reasoning": {"type": "string"},
+                "POGS_Grade": {"type": "string", "enum": GRADE_ENUM},
+                "POGS_reasoning": {"type": "string"},
+            },
+        },
+        "Final_Overall_Grade": {"type": "string", "enum": GRADE_ENUM},
+        "Final_reasoning": {"type": "string"},
+        "fitness_to_practise": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["concern", "reason"],
+            "properties": {
+                "concern": {"type": "boolean"},
+                "reason": {"type": "string"},
+            },
+        },
+        "escalation": {"type": "boolean"},
+        "escalation_reasons": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+        "review_required": {"type": "boolean"},
+        "content_safety": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["flagged", "categories"],
+            "properties": {
+                "flagged": {"type": "boolean"},
+                "categories": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+            },
+        },
+    },
+}
 
 
 def _get_project_client() -> AIProjectClient:
@@ -46,12 +163,21 @@ def _ensure_agent_exists(project: AIProjectClient) -> str:
 
     logger.info("Ensuring aggregator agent '%s' exists (deployment: %s)",
                 AGENT_NAME, deployment)
+
+    response_format = TextResponseFormatJsonSchema(
+        name="aggregation_result",
+        schema=AGGREGATION_SCHEMA,
+        strict=True,
+    )
+    text_options = PromptAgentDefinitionTextOptions(format=response_format)
+
     try:
         agent = project.agents.create_version(
             agent_name=AGENT_NAME,
             definition=PromptAgentDefinition(
                 model=deployment,
                 instructions=instructions,
+                text=text_options,
             ),
         )
     except Exception:
